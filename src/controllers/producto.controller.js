@@ -32,14 +32,16 @@ export const getProductoById = async (req, res) => {
 export const createProducto = async (req, res) => {
   const {nombre,imei, precio, fecha} = req.body
 
+   const fechaSinHora = fecha.split('T')[0];
+
     try {
-      const [rows] = await pool.query('INSERT INTO producto (nombre, imei, precio, fecha) VALUES (?, ?, ?, ?)', [nombre, imei, precio, fecha])
+      const [rows] = await pool.query('INSERT INTO producto (nombre, imei, precio, fecha) VALUES (?, ?, ?, ?)', [nombre, imei, precio, fechaSinHora])
       res.send({ 
         id: rows.insertId,
         nombre,
         imei,
         precio,
-        fecha,
+        fecha: fechaSinHora,
       })
     } catch (error) {
       return res.status(500).json({
@@ -48,17 +50,24 @@ export const createProducto = async (req, res) => {
   }
 }
 
-export const deteleProdcuto = async (req, res) => {
+export const deteleProducto = async (req, res) => {
     try {
-  const [result] = await pool.query('DELETE FROM producto WHERE id = ?', [req.params.id])
+    const [checkResult] = await pool.query('SELECT * FROM producto WHERE id = ?', [req.params.id])
+
+    if(checkResult === 0) return res.status(404).json({
+      message: 'Producto no encontrado'
+    })
+
+    const [result] = await pool.query('DELETE FROM producto WHERE id = ?', [req.params.id])
 
 
-  if (result.affectedRows <= 0) return res.status(404).json({
+  if (result.affectedRows === 0) return res.status(404).json({
     message: 'Producto no encontrado'
   })
 
   res.sendStatus(204)
   } catch (error) {
+    console.error('Error al eliminar el producto', error)
     return res.status(500).json({
       message: 'Algo salio mal'
     })
